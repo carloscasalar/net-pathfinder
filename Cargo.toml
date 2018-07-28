@@ -1,0 +1,6 @@
+[package]
+name = "net-pathfinder"
+version = "0.1.0"
+authors = ["Carlos Castillo <castillo.st@gmail.com>"]
+
+[dependencies]
