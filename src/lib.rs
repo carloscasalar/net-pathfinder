@@ -8,15 +8,22 @@ pub mod node {
         pub to: &'a str
     }
 
+    impl<'a> Connection<'a> {
+        pub fn is_connected_to(&self, point_id: &str) -> bool {
+            self.to == point_id
+        }
+    }
+
     #[derive(Debug)]
-    pub struct Node<'a, T> {
+    pub struct Node<'a, T: Point> {
         pub point: T,
         pub connections: Vec<Connection<'a>>,
     }
 
     impl<'a, T: Point> Node<'a, T> {
         pub fn is_connected_to(&self, point_id: &str) -> bool {
-            self.connections.iter().any(|conn| conn.to == point_id)
+            self.connections.iter()
+                .any(|conn| conn.is_connected_to(point_id))
         }
     }
 }
