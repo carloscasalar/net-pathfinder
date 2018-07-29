@@ -4,37 +4,21 @@ pub mod node {
     }
 
     #[derive(Debug)]
-    pub struct Connection {
-        pub to: String
+    pub struct Connection<'a> {
+        pub to: &'a str
     }
 
     #[derive(Debug)]
-    pub struct Node<T> {
+    pub struct Node<'a, T> {
         pub point: T,
-        pub connections: Vec<Connection>,
+        pub connections: Vec<Connection<'a>>,
     }
 
-    impl<T: Point> Node<T> {
+    impl<'a, T: Point> Node<'a, T> {
         pub fn is_connected_to(&self, point_id: &str) -> bool {
             self.connections.iter().any(|conn| conn.to == point_id)
         }
     }
-
-    pub trait Connected {
-        fn is_connected_to(&self, point_id: &str) -> bool;
-    }
-
-    impl Connected for Connection {
-        fn is_connected_to(&self, point_id: &str) -> bool {
-            self.to == point_id
-        }
-    }
-
-//    impl Connected for Node<Point> {
-//        fn is_connected_to(&self, point_id: String) -> bool {
-//            self.connections.iter().any(|conn| conn.to == point_id)
-//        }
-//    }
 }
 
 
@@ -72,11 +56,12 @@ mod is_connected_to_test {
     #[test]
     fn it_should_return_true_if_is_connected_to_node() {
         let portugal = get_country(PORTUGAL);
+        let spain = get_country(SPAIN);
 
         let portugal_node = Node {
             point: portugal,
             connections: vec![Connection {
-                to: SPAIN.to_string()
+                to: spain.id()
             }],
         };
 
