@@ -1,59 +1,91 @@
 pub mod node {
+    pub trait Point {
+        fn id(&self) -> &str;
+    }
+
     #[derive(Debug)]
-    pub struct Node {
-        pub id: String,
-        pub name: String,
-        pub connections: Vec<String>,
+    pub struct Connection {
+        pub to: String
     }
 
-    pub trait Connected {
-        fn is_connected_to(&self, node: Node) -> bool;
+    #[derive(Debug)]
+    pub struct Node<T> {
+        pub point: T,
+        pub connections: Vec<Connection>,
     }
 
-    impl Connected for Node {
-        fn is_connected_to(&self, node: Node) -> bool {
-            self.connections.contains(&node.id)
+    impl<T: Point> Node<T> {
+        pub fn is_connected_to(&self, point_id: &str) -> bool {
+            self.connections.iter().any(|conn| conn.to == point_id)
         }
     }
 
+    pub trait Connected {
+        fn is_connected_to(&self, point_id: &str) -> bool;
+    }
+
+    impl Connected for Connection {
+        fn is_connected_to(&self, point_id: &str) -> bool {
+            self.to == point_id
+        }
+    }
+
+//    impl Connected for Node<Point> {
+//        fn is_connected_to(&self, point_id: String) -> bool {
+//            self.connections.iter().any(|conn| conn.to == point_id)
+//        }
+//    }
 }
 
 
 #[cfg(test)]
 mod is_connected_to_test {
-    use node::Node;
-    use node::Connected;
+    use node::*;
+
+    struct Country {
+        pub name: String
+    }
+
+    impl Point for Country {
+        fn id(&self) -> &str {
+            &self.name
+        }
+    }
+
+    const PORTUGAL: &str = "Portugal";
+    const SPAIN: &str = "Spain";
+    const ICELAND: &str = "Iceland";
+    const AUSTRIA: &str = "Austria";
 
     #[test]
     fn it_should_return_false_if_no_node_is_connected() {
-        let node_a = Node {
-            id: String::from("NodeA"),
-            name: String::from("Node A"),
+        let iceland = get_country(ICELAND);
+
+        let iceland_node = Node {
+            point: iceland,
             connections: Vec::new(),
         };
 
-        let node_b = Node {
-            id: String::from("NodeB"),
-            name: String::from("Node B"),
-            connections: Vec::new(),
-        };
-
-        assert_eq!(node_a.is_connected_to(node_b), false);
+        assert_eq!(iceland_node.is_connected_to(AUSTRIA), false);
     }
+
     #[test]
     fn it_should_return_true_if_is_connected_to_node() {
-        let node_a = Node {
-            id: String::from("NodeA"),
-            name: String::from("Node A"),
-            connections: vec![String::from("NodeB")],
+        let portugal = get_country(PORTUGAL);
+
+        let portugal_node = Node {
+            point: portugal,
+            connections: vec![Connection {
+                to: SPAIN.to_string()
+            }],
         };
 
-        let node_b = Node {
-            id: String::from("NodeB"),
-            name: String::from("Node B"),
-            connections: vec![String::from("NodeA")],
-        };
+        assert_eq!(portugal_node.is_connected_to(SPAIN), true);
+    }
 
-        assert_eq!(node_a.is_connected_to(node_b), true);
+    fn get_country(name: &str) -> Country {
+        Country {
+            name: String::from(name)
+        }
     }
 }
