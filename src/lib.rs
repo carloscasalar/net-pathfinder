@@ -21,9 +21,8 @@ pub mod node {
     }
 }
 
-
 #[cfg(test)]
-mod is_connected_to_test {
+mod test {
     use node::*;
 
     struct Country {
