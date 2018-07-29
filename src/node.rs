@@ -1,41 +1,43 @@
-pub trait Point {
-    fn id(&self) -> &str;
+pub trait Point<I: PartialEq> {
+    fn id(&self) -> I;
 }
 
-pub struct Connection<'a> {
-    pub to: &'a str
+pub struct Connection<T> {
+    pub to: T
 }
 
-impl<'a> Connection<'a> {
-    pub fn is_connected_to(&self, point_id: &str) -> bool {
-        self.to == point_id
+impl<T> Connection<T> {
+    pub fn is_connected_to<I: PartialEq>(&self, point: &T) -> bool
+        where T: Point<I> {
+        self.to.id() == point.id()
     }
 }
 
-pub struct Node<'a, T: Point> {
+pub struct Node<T> {
     pub point: T,
-    pub connections: Vec<Connection<'a>>,
+    pub connections: Vec<Connection<T>>,
 }
 
-impl<'a, T: Point> Node<'a, T> {
-    pub fn is_connected_to(&self, point_id: &str) -> bool {
+impl<T> Node<T> {
+    pub fn is_connected_to<I: PartialEq>(&self, point: &T) -> bool
+        where T: Point<I> {
         self.connections.iter()
-            .any(|conn| conn.is_connected_to(point_id))
+            .any(|conn| conn.is_connected_to(point))
     }
 }
-
 
 #[cfg(test)]
 mod test {
     use node::*;
 
+    #[derive(Clone)]
     struct Country {
         pub name: String
     }
 
-    impl Point for Country {
-        fn id(&self) -> &str {
-            &self.name
+    impl Point<String> for Country {
+        fn id(&self) -> String {
+            self.name.to_string()
         }
     }
 
@@ -47,13 +49,14 @@ mod test {
     #[test]
     fn it_should_return_false_if_no_node_is_connected() {
         let iceland = get_country(ICELAND);
+        let austria = get_country(AUSTRIA);
 
         let iceland_node = Node {
             point: iceland,
             connections: Vec::new(),
         };
 
-        assert_eq!(iceland_node.is_connected_to(AUSTRIA), false);
+        assert_eq!(iceland_node.is_connected_to(&austria), false);
     }
 
     #[test]
@@ -64,11 +67,11 @@ mod test {
         let portugal_node = Node {
             point: portugal,
             connections: vec![Connection {
-                to: spain.id()
+                to: spain.clone()
             }],
         };
 
-        assert_eq!(portugal_node.is_connected_to(SPAIN), true);
+        assert_eq!(portugal_node.is_connected_to(&spain), true);
     }
 
     fn get_country(name: &str) -> Country {
