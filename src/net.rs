@@ -7,18 +7,16 @@ pub struct Net<T: Point> {
 
 impl<T: Point> Net<T> {
 
-    fn exists(&self, point: &T)->bool{
-        self.nodes.iter().any(|p| p.point.is(point))
+    fn assert_exists(&self, point: &T)->Result<(),NetErrors>{
+       match self.nodes.iter().find(|p| p.point.is(point)) {
+           Some(_) => Ok(()),
+           None => Err(NetErrors::PointNotFound(point.id().to_string()))
+       }
     }
 
     pub fn find_paths(&self, from: &T, to: &T) -> Result<Vec<Vec<T>>, NetErrors> {
-        if !self.exists(from) {
-            return Err(NetErrors::PointNotFound(from.id().to_string()));
-        }
-
-        if !self.exists(to) {
-            return Err(NetErrors::PointNotFound(to.id().to_string()));
-        }
+        self.assert_exists(from)?;
+        self.assert_exists(to)?;
 
         Ok(Vec::new())
     }
