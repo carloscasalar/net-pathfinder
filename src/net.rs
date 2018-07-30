@@ -163,8 +163,36 @@ mod test {
                 }
             }
         }
-
     }
+
+    // Given this net of points:
+    // A - B - C
+    #[test]
+    fn in_an_a_b_c_net_should_find_a_path_from_a_to_c() {
+        let point_a = simple_point(A);
+        let point_b = simple_point(B);
+        let point_c = simple_point(C);
+
+        let node_a = node(point_a, point_b);
+        let node_b = node_connected_to(point_a, vec![point_a, point_c]);
+        let node_c = node(point_c, point_b);
+
+        let a_b_c_net: Net<SimplePoint> = Net {
+            nodes: vec![node_a, node_b, node_c]
+        };
+
+        let paths = a_b_c_net.find_paths(&point_a, &point_c)
+            .expect("should not throw exception");
+
+        assert_eq!(paths.len(), 1, "should find one path");
+
+        let path_a_b_c = &paths[0];
+
+        assert!(path_a_b_c.first().unwrap().is(&point_a), "First point of the path should be A");
+        assert!(path_a_b_c[1].is(&point_b), "Second point of the path should be B");
+        assert!(path_a_b_c.last().unwrap().is(&point_c), "Third point of the path should be C");
+    }
+
 
 
     fn simple_point(name: char) -> SimplePoint {
@@ -176,6 +204,13 @@ mod test {
             point: from.clone(),
             connections: vec![Connection { to: to.clone() }],
         }
+    }
+
+    fn node_connected_to(point: SimplePoint, point_connected: Vec<SimplePoint>) -> Node<SimplePoint> {
+        let connections = point_connected.iter()
+            .map(|point| Connection{to: point.clone()})
+            .collect();
+        Node { point, connections}
     }
 
     fn non_connected_node(point: SimplePoint) -> Node<SimplePoint> {
