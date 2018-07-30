@@ -1,7 +1,11 @@
 pub trait Point {
-    type Identifier: PartialEq;
+    type Identifier: PartialEq + ToString;
 
     fn id(&self) -> Self::Identifier;
+
+    fn is(&self, other_point: &Self) -> bool{
+        &self.id() == &other_point.id()
+    }
 }
 
 pub struct Connection<T: Point> {
@@ -10,7 +14,7 @@ pub struct Connection<T: Point> {
 
 impl<T: Point> Connection<T> {
     pub fn is_connected_to(&self, point: &T) -> bool {
-        self.to.id() == point.id()
+        self.to.is(point)
     }
 }
 
@@ -20,7 +24,7 @@ pub struct Node<T: Point> {
 }
 
 impl<T: Point> Node<T> {
-    pub fn is_connected_to(&self, point: &T) -> bool{
+    pub fn is_connected_to(&self, point: &T) -> bool {
         self.connections.iter()
             .any(|conn| conn.is_connected_to(point))
     }

@@ -6,7 +6,20 @@ pub struct Net<T: Point> {
 }
 
 impl<T: Point> Net<T> {
+
+    fn exists(&self, point: &T)->bool{
+        self.nodes.iter().any(|p| p.point.is(point))
+    }
+
     pub fn find_paths(&self, from: &T, to: &T) -> Result<Vec<Vec<T>>, NetErrors> {
+        if !self.exists(from) {
+            return Err(NetErrors::PointNotFound(from.id().to_string()));
+        }
+
+        if !self.exists(to) {
+            return Err(NetErrors::PointNotFound(to.id().to_string()));
+        }
+
         Ok(Vec::new())
     }
 }
@@ -63,7 +76,27 @@ mod test {
 
         let path = a_b_net.find_paths(&point_c, &point_a);
 
-        assert!(path.is_err(), "Should not be able to find the path to a non existing point");
+        assert!(path.is_err(), "Should not be able to find the path from a point that does not exists in the net");
+    }
+
+    // Given this net:
+    // A - B
+    #[test]
+    fn find_paths_to_a_point_not_in_the_net_should_throw_an_exception() {
+        let point_a = simple_point(A);
+        let point_b = simple_point(B);
+        let point_c = simple_point(C);
+
+        let node_a = node(point_a, point_b);
+        let node_b = node(point_b, point_a);
+
+        let a_b_net: Net<SimplePoint> = Net {
+            nodes: vec![node_a, node_b]
+        };
+
+        let path = a_b_net.find_paths(&point_a, &point_c);
+
+        assert!(path.is_err(), "Should not be able to find the path to a point that does not exists in the net");
     }
 
     fn simple_point(name: char) -> SimplePoint {
