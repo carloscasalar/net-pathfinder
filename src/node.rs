@@ -1,26 +1,26 @@
-pub trait Point<I: PartialEq> {
-    fn id(&self) -> I;
+pub trait Point {
+    type Identifier: PartialEq;
+
+    fn id(&self) -> Self::Identifier;
 }
 
-pub struct Connection<T> {
+pub struct Connection<T: Point> {
     pub to: T
 }
 
-impl<T> Connection<T> {
-    pub fn is_connected_to<I: PartialEq>(&self, point: &T) -> bool
-        where T: Point<I> {
+impl<T: Point> Connection<T> {
+    pub fn is_connected_to(&self, point: &T) -> bool {
         self.to.id() == point.id()
     }
 }
 
-pub struct Node<T> {
+pub struct Node<T: Point> {
     pub point: T,
     pub connections: Vec<Connection<T>>,
 }
 
-impl<T> Node<T> {
-    pub fn is_connected_to<I: PartialEq>(&self, point: &T) -> bool
-        where T: Point<I> {
+impl<T: Point> Node<T> {
+    pub fn is_connected_to(&self, point: &T) -> bool{
         self.connections.iter()
             .any(|conn| conn.is_connected_to(point))
     }
@@ -35,7 +35,9 @@ mod test {
         pub name: String
     }
 
-    impl Point<String> for Country {
+    impl Point for Country {
+        type Identifier = String;
+
         fn id(&self) -> String {
             self.name.to_string()
         }

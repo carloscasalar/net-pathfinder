@@ -1,12 +1,12 @@
 use node::Node;
 use node::Point;
 
-pub struct Net<T> {
+pub struct Net<T: Point> {
     pub nodes: Vec<Node<T>>
 }
 
-impl<T> Net<T> {
-    pub fn find_paths<I: PartialEq>(&self, from: &T, to: &T) -> Result<Vec<Vec<T>>, NetErrors> where T: Point<I> {
+impl<T: Point> Net<T> {
+    pub fn find_paths(&self, from: &T, to: &T) -> Result<Vec<Vec<T>>, NetErrors> {
         Ok(Vec::new())
     }
 }
@@ -38,7 +38,9 @@ mod test {
         name: char
     }
 
-    impl Point<char> for SimplePoint {
+    impl Point for SimplePoint {
+        type Identifier = char;
+
         fn id(&self) -> char {
             self.name
         }
