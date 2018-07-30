@@ -11,9 +11,11 @@ impl<'a, T: Point> Net<T> {
         let node_from = self.find_node_or_throws(from)?;
 
         let mut paths = Vec::new();
-        if node_from.is_connected_to(to){
+        if node_from.is_connected_to(to) {
             let path = vec!(from, to);
             paths.push(path);
+        } else {
+            return Err(NetErrors::NoPathFound);
         }
 
         Ok(paths)
@@ -34,6 +36,10 @@ quick_error! {
         PointNotFound(point_id: String) {
             description("Point does not exists in the net")
             display(r#"The point with id "{}" could not be found"#, point_id)
+        }
+        NoPathFound {
+            description("No path found between points")
+            display(r#"No path found between points"#)
         }
     }
 }
@@ -132,6 +138,35 @@ mod test {
         assert!(&last_point.is(&point_b), "Path should begin with A point");
     }
 
+    // Given this net of non connected points:
+    // A  B
+    #[test]
+    fn in_there_is_no_path_from_a_to_b_find_path_should_throw() {
+        let point_a = simple_point(A);
+        let point_b = simple_point(B);
+
+        let node_a = non_connected_node(point_a);
+        let node_b = non_connected_node(point_b);
+
+        let a_b_net: Net<SimplePoint> = Net {
+            nodes: vec![node_a, node_b]
+        };
+
+        let paths = a_b_net.find_paths(&point_a, &point_b);
+
+        match paths {
+            Ok(_) => panic!("should throw an error"),
+            Err(ref err) => {
+                match err {
+                    NetErrors::NoPathFound => assert!(true),
+                    _ => panic!("NoPathFound execption expected")
+                }
+            }
+        }
+
+    }
+
+
     fn simple_point(name: char) -> SimplePoint {
         SimplePoint { name: name.clone() }
     }
@@ -141,5 +176,10 @@ mod test {
             point: from.clone(),
             connections: vec![Connection { to: to.clone() }],
         }
+    }
+
+    fn non_connected_node(point: SimplePoint) -> Node<SimplePoint> {
+        let connections = Vec::new();
+        Node { point, connections }
     }
 }
