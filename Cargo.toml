@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["Carlos Castillo <castillo.st@gmail.com>"]
 
 [dependencies]
+quick-error = "1.2.2"
