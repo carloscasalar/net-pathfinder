@@ -166,19 +166,14 @@ mod test {
             nodes: vec![node_a, node_b]
         };
 
-        let paths = a_b_net.find_paths(&point_a, &point_b)
+        let mut paths = a_b_net.find_paths(&point_a, &point_b)
             .expect("Unexpected error while finding path");
 
         assert_eq!(paths.len(), 1, "Should find one path");
 
-        let path_from_a_to_b = &paths[0];
+        let path_a_b = paths.pop().unwrap();
 
-        let first_point = &path_from_a_to_b[0];
-
-        let last_point = &path_from_a_to_b[1];
-
-        assert!(first_point.is(&point_a), "Path should begin with A point");
-        assert!(&last_point.is(&point_b), "Path should begin with A point");
+        assert_eq!(format_path_kebab(&path_a_b), "A-B", "Found path should be A-B");
     }
 
     // Given this net of non connected points:
@@ -224,20 +219,23 @@ mod test {
             nodes: vec![node_a, node_b, node_c]
         };
 
-        let paths = a_b_c_net.find_paths(&point_a, &point_c)
+        let mut paths = a_b_c_net.find_paths(&point_a, &point_c)
             .expect(&format!("should not throw exception finding path a to c in net {:?}", a_b_c_net).into_boxed_str());
 
         assert_eq!(paths.len(), 1, "should find one path");
 
-        let mut path_a_b_c = paths[0].to_vec();
-        println!("Net: {:?}", a_b_c_net);
-        println!("Path: {:?}", path_a_b_c);
+        let path_a_b_c = paths.pop().unwrap();
 
-        assert_eq!(path_a_b_c.pop().unwrap().id(), C, "Third point of the path should be C");
-        assert_eq!(path_a_b_c.pop().unwrap().id(), B, "Second point of the path should be B");
-        assert_eq!(path_a_b_c.pop().unwrap().id(), A, "First point of the path should be A");
+        assert_eq!("A-B-C", format_path_kebab(&path_a_b_c), "found path should be A-B-C");
     }
 
+    fn format_path_kebab(path: &Vec<SimplePoint>) -> String {
+        let points: Vec<String> =path.iter()
+            .map( |point| point.id().to_string())
+            .collect();
+
+        points[..].join("-")
+    }
 
     fn simple_point(name: char) -> SimplePoint {
         SimplePoint { name: name.clone() }
