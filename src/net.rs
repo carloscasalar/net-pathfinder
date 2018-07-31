@@ -19,7 +19,7 @@ impl<'a, T: Point> Net<T> {
         let mut current_path = previous_path.to_vec();
 
         if from.is_connected_to(to) {
-            let next_point= to.clone();
+            let next_point = to.clone();
             current_path.push(next_point);
             return Ok(vec![current_path]);
         }
@@ -98,6 +98,7 @@ mod test {
     const A: char = 'A';
     const B: char = 'B';
     const C: char = 'C';
+    const D: char = 'D';
 
     #[derive(Copy, Clone, PartialEq, Debug)]
     struct SimplePoint {
@@ -197,7 +198,7 @@ mod test {
             Err(ref err) => {
                 match err {
                     NetErrors::NoPathFound => assert!(true),
-                    _ => panic!("NoPathFound execption expected")
+                    _ => panic!("NoPathFound exception expected")
                 }
             }
         }
@@ -229,12 +230,53 @@ mod test {
         assert_eq!("A-B-C", format_path_kebab(&path_a_b_c), "found path should be A-B-C");
     }
 
+    // Given this net of points:
+    // A - B - C
+    //  \     /
+    //   \   /
+    //     D
+    #[test]
+    fn in_triangle_net_should_find_two_paths_from_a_to_c() {
+        let point_a = simple_point(A);
+        let point_b = simple_point(B);
+        let point_c = simple_point(C);
+        let point_d = simple_point(D);
+
+        let node_a = node_connected_to(point_a, vec![point_b, point_d]);
+        let node_b = node_connected_to(point_b, vec![point_a, point_c]);
+        let node_c = node_connected_to(point_c, vec![point_b, point_d]);
+        let node_d = node_connected_to(point_d, vec![point_a, point_c]);
+
+        let triangle_net: Net<SimplePoint> = Net {
+            nodes: vec![node_a, node_b, node_c, node_d]
+        };
+
+        let paths = triangle_net.find_paths(&point_a, &point_c)
+            .expect(&format!("should not throw exception finding path a to c in net {:?}", triangle_net).into_boxed_str());
+
+        assert_eq!(paths.len(), 2, "should find two paths");
+
+        let formatted_paths = format_list_of_paths(paths);
+
+        assert_eq!(formatted_paths, "A-B-C + A-D-C", "should find A-B-C and A-D-C paths");
+    }
+
     fn format_path_kebab(path: &Vec<SimplePoint>) -> String {
-        let points: Vec<String> =path.iter()
-            .map( |point| point.id().to_string())
+        let points: Vec<String> = path.iter()
+            .map(|point| point.id().to_string())
             .collect();
 
         points[..].join("-")
+    }
+
+    fn format_list_of_paths(paths: Vec<Vec<SimplePoint>>) -> String {
+        let mut formatted_and_ordered_paths: Vec<String> = paths.iter()
+            .map(|path| format_path_kebab(path))
+            .collect();
+
+        formatted_and_ordered_paths.sort();
+
+        formatted_and_ordered_paths[..].join(" + ")
     }
 
     fn simple_point(name: char) -> SimplePoint {
