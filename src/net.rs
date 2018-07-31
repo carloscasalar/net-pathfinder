@@ -1,28 +1,71 @@
 use node::Node;
 use node::Point;
+use node::Connection;
 
+#[derive(Debug)]
 pub struct Net<T: Point> {
     pub nodes: Vec<Node<T>>
 }
 
 impl<'a, T: Point> Net<T> {
-    pub fn find_paths(&self, from: &'a T, to: &'a T) -> Result<Vec<Vec<&'a T>>, NetErrors> {
-        self.find_node_or_throws(to)?;
+    pub fn find_paths(&self, from: &'a T, to: &'a T) -> Result<Vec<Vec<T>>, NetErrors> {
         let node_from = self.find_node_or_throws(from)?;
 
-        let mut paths = Vec::new();
-        if node_from.is_connected_to(to) {
-            let path = vec!(from, to);
-            paths.push(path);
-        } else {
+        let beginning_path = vec![from.clone()];
+        self.find_paths_rec(&node_from, &to, &beginning_path)
+    }
+
+    fn find_paths_rec(&self, from: &Node<T>, to: &T, previous_path: &Vec<T>) -> Result<Vec<Vec<T>>, NetErrors> {
+        let mut current_path = previous_path.to_vec();
+
+        if from.is_connected_to(to) {
+            let next_point= to.clone();
+            current_path.push(next_point);
+            return Ok(vec![current_path]);
+        }
+
+        let connection_not_used_in_previous_path = |connection: &&Connection<T>|
+            !previous_path.iter().any(|point| point.is(&connection.to));
+
+        let followable_points: Vec<&T> = from.connections.iter()
+            .filter(connection_not_used_in_previous_path)
+            .map(|c| &c.to)
+            .collect();
+
+        if followable_points.is_empty() {
             return Err(NetErrors::NoPathFound);
         }
 
-        Ok(paths)
+        let mut paths: Vec<Vec<T>> = Vec::new();
+        for point in followable_points.iter() {
+            let origin_node = self.find_node_or_throws(&point)?;
+            let mut trying_path = current_path.to_vec();
+            trying_path.push(point.clone().clone());
+
+            let path_search = self.find_paths_rec(origin_node, &to, &trying_path);
+            match path_search {
+                Ok(paths_found) => paths_found.iter()
+                    .for_each(|path_found| paths.push(path_found.to_vec())),
+                Err(err) => {
+                    match err {
+                        NetErrors::NoPathFound => (),
+                        _ => panic!(err)
+                    }
+                }
+            }
+        }
+
+        if paths.is_empty() {
+            Err(NetErrors::NoPathFound)
+        } else {
+            Ok(paths)
+        }
     }
 
     fn find_node_or_throws(&self, point: &T) -> Result<&Node<T>, NetErrors> {
-        let node_point = self.nodes.iter().find(|node| node.point.is(point));
+        let node_point = self.nodes.iter()
+            .find(|node| node.point.is(point));
+
         match node_point {
             Some(ref node) => Ok(node),
             None => Err(NetErrors::PointNotFound(point.id().to_string()))
@@ -174,7 +217,7 @@ mod test {
         let point_c = simple_point(C);
 
         let node_a = node(point_a, point_b);
-        let node_b = node_connected_to(point_a, vec![point_a, point_c]);
+        let node_b = node_connected_to(point_b, vec![point_a, point_c]);
         let node_c = node(point_c, point_b);
 
         let a_b_c_net: Net<SimplePoint> = Net {
@@ -182,17 +225,18 @@ mod test {
         };
 
         let paths = a_b_c_net.find_paths(&point_a, &point_c)
-            .expect("should not throw exception");
+            .expect(&format!("should not throw exception finding path a to c in net {:?}", a_b_c_net).into_boxed_str());
 
         assert_eq!(paths.len(), 1, "should find one path");
 
-        let path_a_b_c = &paths[0];
+        let mut path_a_b_c = paths[0].to_vec();
+        println!("Net: {:?}", a_b_c_net);
+        println!("Path: {:?}", path_a_b_c);
 
-        assert!(path_a_b_c.first().unwrap().is(&point_a), "First point of the path should be A");
-        assert!(path_a_b_c[1].is(&point_b), "Second point of the path should be B");
-        assert!(path_a_b_c.last().unwrap().is(&point_c), "Third point of the path should be C");
+        assert_eq!(path_a_b_c.pop().unwrap().id(), C, "Third point of the path should be C");
+        assert_eq!(path_a_b_c.pop().unwrap().id(), B, "Second point of the path should be B");
+        assert_eq!(path_a_b_c.pop().unwrap().id(), A, "First point of the path should be A");
     }
-
 
 
     fn simple_point(name: char) -> SimplePoint {
@@ -208,9 +252,9 @@ mod test {
 
     fn node_connected_to(point: SimplePoint, point_connected: Vec<SimplePoint>) -> Node<SimplePoint> {
         let connections = point_connected.iter()
-            .map(|point| Connection{to: point.clone()})
+            .map(|point| Connection { to: point.clone() })
             .collect();
-        Node { point, connections}
+        Node { point, connections }
     }
 
     fn non_connected_node(point: SimplePoint) -> Node<SimplePoint> {

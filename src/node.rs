@@ -1,13 +1,14 @@
-pub trait Point {
+pub trait Point: Clone{
     type Identifier: PartialEq + ToString;
 
     fn id(&self) -> Self::Identifier;
 
-    fn is(&self, other_point: &Self) -> bool{
+    fn is(&self, other_point: &Self) -> bool {
         &self.id() == &other_point.id()
     }
 }
 
+#[derive(Debug)]
 pub struct Connection<T: Point> {
     pub to: T
 }
@@ -18,6 +19,7 @@ impl<T: Point> Connection<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct Node<T: Point> {
     pub point: T,
     pub connections: Vec<Connection<T>>,
