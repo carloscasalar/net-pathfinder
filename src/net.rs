@@ -167,14 +167,10 @@ mod test {
             nodes: vec![node_a, node_b]
         };
 
-        let mut paths = a_b_net.find_paths(&point_a, &point_b)
+        let paths = a_b_net.find_paths(&point_a, &point_b)
             .expect("Unexpected error while finding path");
 
-        assert_eq!(paths.len(), 1, "Should find one path");
-
-        let path_a_b = paths.pop().unwrap();
-
-        assert_eq!(format_path_kebab(&path_a_b), "A-B", "Found path should be A-B");
+        assert_eq!(format_list_of_paths(paths), "A-B", "Found path should be A-B");
     }
 
     // Given this net of non connected points:
@@ -220,14 +216,10 @@ mod test {
             nodes: vec![node_a, node_b, node_c]
         };
 
-        let mut paths = a_b_c_net.find_paths(&point_a, &point_c)
+        let paths = a_b_c_net.find_paths(&point_a, &point_c)
             .expect(&format!("should not throw exception finding path a to c in net {:?}", a_b_c_net).into_boxed_str());
 
-        assert_eq!(paths.len(), 1, "should find one path");
-
-        let path_a_b_c = paths.pop().unwrap();
-
-        assert_eq!("A-B-C", format_path_kebab(&path_a_b_c), "found path should be A-B-C");
+        assert_eq!("A-B-C", format_list_of_paths(paths), "found path should be A-B-C");
     }
 
     // Given this net of points:
@@ -254,12 +246,40 @@ mod test {
         let paths = triangle_net.find_paths(&point_a, &point_c)
             .expect(&format!("should not throw exception finding path a to c in net {:?}", triangle_net).into_boxed_str());
 
-        assert_eq!(paths.len(), 2, "should find two paths");
-
         let formatted_paths = format_list_of_paths(paths);
 
         assert_eq!(formatted_paths, "A-B-C + A-D-C", "should find A-B-C and A-D-C paths");
     }
+
+    // Given this net of points:
+    // A - B - C
+    //  \  |  /
+    //   \ | /
+    //     D
+    #[test]
+    fn should_find_all_feasible_paths_from_a_to_c() {
+        let point_a = simple_point(A);
+        let point_b = simple_point(B);
+        let point_c = simple_point(C);
+        let point_d = simple_point(D);
+
+        let node_a = node_connected_to(point_a, vec![point_b, point_d]);
+        let node_b = node_connected_to(point_b, vec![point_a, point_c, point_d]);
+        let node_c = node_connected_to(point_c, vec![point_b, point_d]);
+        let node_d = node_connected_to(point_d, vec![point_a, point_c, point_b]);
+
+        let triangle_net: Net<SimplePoint> = Net {
+            nodes: vec![node_a, node_b, node_c, node_d]
+        };
+
+        let paths = triangle_net.find_paths(&point_a, &point_c)
+            .expect(&format!("should not throw exception finding path a to c in net {:?}", triangle_net).into_boxed_str());
+
+        let formatted_paths = format_list_of_paths(paths);
+
+        assert_eq!(formatted_paths, "A-B-C + A-B-D-C + A-D-C + A-D-B-C", "should find the four feasible paths");
+    }
+
 
     fn format_path_kebab(path: &Vec<SimplePoint>) -> String {
         let points: Vec<String> = path.iter()
