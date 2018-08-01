@@ -55,7 +55,7 @@ mod test {
     const AUSTRIA: &str = "Austria";
 
     #[test]
-    fn it_should_return_false_if_no_node_is_connected() {
+    fn node_is_connected_should_return_false_if_no_node_is_connected() {
         let iceland = get_country(ICELAND);
         let austria = get_country(AUSTRIA);
 
@@ -68,7 +68,7 @@ mod test {
     }
 
     #[test]
-    fn it_should_return_true_if_is_connected_to_node() {
+    fn node_is_connected_should_return_true_if_is_connected_to_node() {
         let portugal = get_country(PORTUGAL);
         let spain = get_country(SPAIN);
 
