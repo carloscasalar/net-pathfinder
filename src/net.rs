@@ -16,11 +16,9 @@ impl<'a, T: Point> Net<T> {
     }
 
     fn find_paths_rec(&self, from: &Node<T>, to: &T, previous_path: &Vec<T>) -> Result<Vec<Vec<T>>, NetErrors> {
-        let mut current_path = previous_path.to_vec();
+        let current_path = previous_path.to_vec();
 
-        if from.is_connected_to(to) {
-            let next_point = to.clone();
-            current_path.push(next_point);
+        if from.point.is(to) {
             return Ok(vec![current_path]);
         }
 
@@ -277,7 +275,7 @@ mod test {
 
         let formatted_paths = format_list_of_paths(paths);
 
-        assert_eq!(formatted_paths, "A-B-C + A-B-D-C + A-D-C + A-D-B-C", "should find the four feasible paths");
+        assert_eq!(formatted_paths, "A-B-C + A-B-D-C + A-D-B-C + A-D-C", "should find the four feasible paths");
     }
 
 
