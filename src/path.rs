@@ -14,6 +14,13 @@ impl<T: Point> Path<T> {
     pub fn do_not_contains(&self, point_to_check: &T) -> bool {
         !self.points.iter().any(|point_in_path| point_in_path.is(point_to_check))
     }
+
+    pub fn ends_with(&self, point: &T) -> bool {
+        match self.points.last() {
+            Some(last_point) => last_point.is(point),
+            None => false
+        }
+    }
 }
 
 impl<T: Point> fmt::Display for Path<T> {

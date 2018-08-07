@@ -20,7 +20,7 @@ impl<'a, T: Point> Net<T> {
     }
 
     fn find_paths_rec(&self, from: &Node<T>, to: &T, previous_path: &Path<T>) -> Result<Vec<Path<T>>, NetErrors> {
-        if from.point.is(to) {
+        if previous_path.ends_with(to) {
             let current_path = previous_path.clone();
             return Ok(vec![current_path]);
         }
