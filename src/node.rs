@@ -1,3 +1,5 @@
+use path::Path;
+
 pub trait Point: Clone {
     type Identifier: PartialEq + ToString;
 
@@ -29,6 +31,19 @@ impl<T: Point> Node<T> {
     pub fn is_connected_to(&self, point: &T) -> bool {
         self.connections.iter()
             .any(|conn| conn.is_connected_to(point))
+    }
+
+    pub fn connected_points_not_in_path(&self, path: &Path<T>) -> Option<Vec<&T>> {
+        let points: Vec<&T> = self.connections.iter()
+            .filter(|connection| path.do_not_contains(&connection.to))
+            .map(|c| &c.to)
+            .collect();
+
+        if points.is_empty() {
+            None
+        } else {
+            Some(points)
+        }
     }
 }
 

@@ -1,6 +1,5 @@
 use node::Node;
 use node::Point;
-use node::Connection;
 use path::PathBuilder;
 use path::Path;
 
@@ -25,40 +24,34 @@ impl<'a, T: Point> Net<T> {
             return Ok(vec![current_path]);
         }
 
-        let connection_not_used_in_previous_path = |connection: &&Connection<T>| previous_path.do_not_contains(&connection.to);
+        match from.connected_points_not_in_path(previous_path) {
+            None => Err(NetErrors::NoPathFound),
+            Some(followable_points) => {
+                let mut paths: Vec<Path<T>> = Vec::new();
+                for point in followable_points.iter() {
+                    let origin_node = self.find_node_or_throws(&point)?;
+                    let mut trying_path = previous_path.clone();
+                    trying_path.push(point.clone().clone());
 
-        let followable_points: Vec<&T> = from.connections.iter()
-            .filter(connection_not_used_in_previous_path)
-            .map(|c| &c.to)
-            .collect();
-
-        if followable_points.is_empty() {
-            return Err(NetErrors::NoPathFound);
-        }
-
-        let mut paths: Vec<Path<T>> = Vec::new();
-        for point in followable_points.iter() {
-            let origin_node = self.find_node_or_throws(&point)?;
-            let mut trying_path = previous_path.clone();
-            trying_path.push(point.clone().clone());
-
-            let path_search = self.find_paths_rec(origin_node, &to, &trying_path);
-            match path_search {
-                Ok(paths_found) => paths_found.iter()
-                    .for_each(|path_found| paths.push(path_found.clone())),
-                Err(err) => {
-                    match err {
-                        NetErrors::NoPathFound => (),
-                        _ => panic!(err)
+                    let path_search = self.find_paths_rec(origin_node, &to, &trying_path);
+                    match path_search {
+                        Ok(paths_found) => paths_found.iter()
+                            .for_each(|path_found| paths.push(path_found.clone())),
+                        Err(err) => {
+                            match err {
+                                NetErrors::NoPathFound => (),
+                                _ => panic!(err)
+                            }
+                        }
                     }
                 }
-            }
-        }
 
-        if paths.is_empty() {
-            Err(NetErrors::NoPathFound)
-        } else {
-            Ok(paths)
+                if paths.is_empty() {
+                    Err(NetErrors::NoPathFound)
+                } else {
+                    Ok(paths)
+                }
+            }
         }
     }
 
