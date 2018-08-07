@@ -1,6 +1,8 @@
 use node::Node;
 use node::Point;
 use node::Connection;
+use path::PathBuilder;
+use path::Path;
 
 #[derive(Debug)]
 pub struct Net<T: Point> {
@@ -8,22 +10,22 @@ pub struct Net<T: Point> {
 }
 
 impl<'a, T: Point> Net<T> {
-    pub fn find_paths(&self, from: &'a T, to: &'a T) -> Result<Vec<Vec<T>>, NetErrors> {
+    pub fn find_paths(&self, from: &'a T, to: &'a T) -> Result<Vec<Path<T>>, NetErrors> {
         let node_from = self.find_node_or_throws(from)?;
 
-        let beginning_path = vec![from.clone()];
-        self.find_paths_rec(&node_from, &to, &beginning_path)
+        match PathBuilder::new().point(from).build() {
+            Ok(beginning_path) => self.find_paths_rec(&node_from, &to, &beginning_path),
+            Err(message) => Err(NetErrors::PathCannotBeBuilt(message))
+        }
     }
 
-    fn find_paths_rec(&self, from: &Node<T>, to: &T, previous_path: &Vec<T>) -> Result<Vec<Vec<T>>, NetErrors> {
-        let current_path = previous_path.to_vec();
-
+    fn find_paths_rec(&self, from: &Node<T>, to: &T, previous_path: &Path<T>) -> Result<Vec<Path<T>>, NetErrors> {
         if from.point.is(to) {
+            let current_path = previous_path.clone();
             return Ok(vec![current_path]);
         }
 
-        let connection_not_used_in_previous_path = |connection: &&Connection<T>|
-            !previous_path.iter().any(|point| point.is(&connection.to));
+        let connection_not_used_in_previous_path = |connection: &&Connection<T>| previous_path.do_not_contains(&connection.to);
 
         let followable_points: Vec<&T> = from.connections.iter()
             .filter(connection_not_used_in_previous_path)
@@ -34,16 +36,16 @@ impl<'a, T: Point> Net<T> {
             return Err(NetErrors::NoPathFound);
         }
 
-        let mut paths: Vec<Vec<T>> = Vec::new();
+        let mut paths: Vec<Path<T>> = Vec::new();
         for point in followable_points.iter() {
             let origin_node = self.find_node_or_throws(&point)?;
-            let mut trying_path = current_path.to_vec();
+            let mut trying_path = previous_path.clone();
             trying_path.push(point.clone().clone());
 
             let path_search = self.find_paths_rec(origin_node, &to, &trying_path);
             match path_search {
                 Ok(paths_found) => paths_found.iter()
-                    .for_each(|path_found| paths.push(path_found.to_vec())),
+                    .for_each(|path_found| paths.push(path_found.clone())),
                 Err(err) => {
                     match err {
                         NetErrors::NoPathFound => (),
@@ -82,6 +84,10 @@ quick_error! {
             description("No path found between points")
             display(r#"No path found between points"#)
         }
+        PathCannotBeBuilt(path_error: String) {
+            description("Path cannot be built")
+            display(r#"Path cannot be built: {}"#, path_error)
+        }
     }
 }
 
@@ -92,6 +98,7 @@ mod test {
     use node::Point;
     use node::Node;
     use node::Connection;
+    use path::Path;
 
     const A: char = 'A';
     const B: char = 'B';
@@ -279,15 +286,11 @@ mod test {
     }
 
 
-    fn format_path_kebab(path: &Vec<SimplePoint>) -> String {
-        let points: Vec<String> = path.iter()
-            .map(|point| point.id().to_string())
-            .collect();
-
-        points[..].join("-")
+    fn format_path_kebab(path: &Path<SimplePoint>) -> String {
+        return format!("{}", path);
     }
 
-    fn format_list_of_paths(paths: Vec<Vec<SimplePoint>>) -> String {
+    fn format_list_of_paths(paths: Vec<Path<SimplePoint>>) -> String {
         let mut formatted_and_ordered_paths: Vec<String> = paths.iter()
             .map(|path| format_path_kebab(path))
             .collect();

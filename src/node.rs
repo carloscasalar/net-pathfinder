@@ -1,4 +1,4 @@
-pub trait Point: Clone{
+pub trait Point: Clone {
     type Identifier: PartialEq + ToString;
 
     fn id(&self) -> Self::Identifier;

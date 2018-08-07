@@ -1,11 +1,31 @@
 use node::Point;
+use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Path<T: Point> {
     points: Vec<T>
 }
 
-impl<T: Point> Path<T> {}
+impl<T: Point> Path<T> {
+    pub fn push(&mut self, point: T) {
+        self.points.push(point);
+    }
+
+    pub fn do_not_contains(&self, point_to_check: &T) -> bool {
+        !self.points.iter().any(|point_in_path| point_in_path.is(point_to_check))
+    }
+}
+
+impl<T: Point> fmt::Display for Path<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let points: Vec<String> = self.points.iter()
+            .map(|point| point.id().to_string())
+            .collect();
+
+        let points_in_kebab_case = points[..].join("-");
+        write!(f, "{}", points_in_kebab_case)
+    }
+}
 
 pub struct PathBuilder<T: Point> {
     points: Option<Vec<T>>
@@ -25,10 +45,11 @@ impl<T: Point> PathBuilder<T> {
         self
     }
 
-    pub fn point(&mut self, point: T) -> &mut Self {
+    pub fn point(&mut self, point: &T) -> &mut Self {
+        let point_to_add = point.clone();
         match self.points {
-            Some(ref mut p) => p.push(point),
-            None => self.points = Some(vec![point])
+            Some(ref mut p) => p.push(point_to_add),
+            None => self.points = Some(vec![point_to_add])
         }
         self
     }
@@ -71,8 +92,8 @@ mod test {
     #[test]
     fn builder_should_be_able_to_build_a_path_setting_points_one_by_one() {
         let path = PathBuilder::new()
-            .point(SimplePoint::new(8))
-            .point(SimplePoint::new(5))
+            .point(&SimplePoint::new(8))
+            .point(&SimplePoint::new(5))
             .build()
             .expect("Builder should not throw if all attributes are provided");
 
