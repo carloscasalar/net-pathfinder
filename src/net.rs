@@ -13,12 +13,12 @@ impl<'a, T: Point> Net<T> {
         let node_from = self.find_node_or_throws(from)?;
 
         match PathBuilder::new().point(from).build() {
-            Ok(beginning_path) => self.find_paths_rec(&node_from, &to, &beginning_path),
+            Ok(beginning_path) => self.find_paths_not_crossing_previous_path(&node_from, &to, &beginning_path),
             Err(message) => Err(NetErrors::PathCannotBeBuilt(message))
         }
     }
 
-    fn find_paths_rec(&self, from: &Node<T>, to: &T, previous_path: &Path<T>) -> Result<Vec<Path<T>>, NetErrors> {
+    fn find_paths_not_crossing_previous_path(&self, from: &Node<T>, to: &T, previous_path: &Path<T>) -> Result<Vec<Path<T>>, NetErrors> {
         if previous_path.ends_with(to) {
             let current_path = previous_path.clone();
             return Ok(vec![current_path]);
@@ -28,23 +28,9 @@ impl<'a, T: Point> Net<T> {
             None => Err(NetErrors::NoPathFound),
             Some(followable_points) => {
                 let mut paths: Vec<Path<T>> = Vec::new();
-                for point in followable_points.into_iter() {
-                    let origin_node = self.find_node_or_throws(point)?;
-                    let mut trying_path = previous_path.clone();
-                    trying_path.push(point.clone());
-
-                    let path_search = self.find_paths_rec(origin_node, &to, &trying_path);
-                    match path_search {
-                        Ok(paths_found) => paths_found.iter()
-                            .for_each(|path_found| paths.push(path_found.clone())),
-                        Err(err) => {
-                            match err {
-                                NetErrors::NoPathFound => (),
-                                _ => panic!(err)
-                            }
-                        }
-                    }
-                }
+                followable_points.into_iter().for_each(|point|
+                    self.push_all_paths_following(&mut paths, point, &to, previous_path)
+                );
 
                 if paths.is_empty() {
                     Err(NetErrors::NoPathFound)
@@ -55,6 +41,23 @@ impl<'a, T: Point> Net<T> {
         }
     }
 
+    fn push_all_paths_following(&self, paths: &mut Vec<Path<T>>, starting_point: &T, destination_point: &&T, previous_path: &Path<T>) -> () {
+        let origin_node = self.find_node_or_panic(starting_point);
+        let trying_path = previous_path.with_point_at_the_end(starting_point);
+        let path_search = self.find_paths_not_crossing_previous_path(origin_node, &destination_point, &trying_path);
+        match path_search {
+            Ok(paths_found) => paths_found.into_iter().for_each(|path_found| paths.push(path_found)),
+            Err(err) => Self::panic_if_error_is_not_path_not_found(err)
+        }
+    }
+
+    fn panic_if_error_is_not_path_not_found(err: NetErrors) -> () {
+        match err {
+            NetErrors::NoPathFound => (),
+            _ => panic!(err)
+        }
+    }
+
     fn find_node_or_throws(&self, point: &T) -> Result<&Node<T>, NetErrors> {
         let node_point = self.nodes.iter()
             .find(|node| node.point.is(point));
@@ -62,6 +65,13 @@ impl<'a, T: Point> Net<T> {
         match node_point {
             Some(ref node) => Ok(node),
             None => Err(NetErrors::PointNotFound(point.id().to_string()))
+        }
+    }
+
+    fn find_node_or_panic(&self, point: &T) -> &Node<T> {
+        match self.find_node_or_throws(point) {
+            Ok(ref node) => node,
+            Err(err) => panic!(err)
         }
     }
 }

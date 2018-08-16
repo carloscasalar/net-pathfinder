@@ -21,6 +21,12 @@ impl<T: Point> Path<T> {
             None => false
         }
     }
+
+    pub fn with_point_at_the_end(&self, point_to_add: &T) -> Path<T>{
+        let mut new_path = self.clone();
+        new_path.push(point_to_add.clone());
+        new_path
+    }
 }
 
 impl<T: Point> fmt::Display for Path<T> {
