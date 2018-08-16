@@ -28,10 +28,10 @@ impl<'a, T: Point> Net<T> {
             None => Err(NetErrors::NoPathFound),
             Some(followable_points) => {
                 let mut paths: Vec<Path<T>> = Vec::new();
-                for point in followable_points.iter() {
-                    let origin_node = self.find_node_or_throws(&point)?;
+                for point in followable_points.into_iter() {
+                    let origin_node = self.find_node_or_throws(point)?;
                     let mut trying_path = previous_path.clone();
-                    trying_path.push(point.clone().clone());
+                    trying_path.push(point.clone());
 
                     let path_search = self.find_paths_rec(origin_node, &to, &trying_path);
                     match path_search {
