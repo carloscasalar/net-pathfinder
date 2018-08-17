@@ -13,42 +13,42 @@ impl<'a, T: Point> Net<T> {
         let node_from = self.find_node_or_throws(from)?;
 
         match PathBuilder::new().point(from).build() {
-            Ok(beginning_path) => self.find_paths_not_crossing_previous_path(&node_from, &to, &beginning_path),
-            Err(message) => Err(NetErrors::PathCannotBeBuilt(message))
+            Err(message) => Err(NetErrors::PathCannotBeBuilt(message)),
+            Ok(beginning_path) => match self.find_paths_not_crossing_previous_path(&node_from, &to, &beginning_path) {
+                Some(paths) => Ok(paths),
+                None => Err(NetErrors::NoPathFound)
+            }
         }
     }
 
-    fn find_paths_not_crossing_previous_path(&self, from: &Node<T>, to: &T, previous_path: &Path<T>) -> Result<Vec<Path<T>>, NetErrors> {
+    fn find_paths_not_crossing_previous_path(&self, from: &Node<T>, to: &T, previous_path: &Path<T>) -> Option<Vec<Path<T>>> {
         if previous_path.ends_with(to) {
             let current_path = previous_path.clone();
-            return Ok(vec![current_path]);
+            return Some(vec![current_path]);
         }
 
         match from.connected_points_not_in_path(previous_path) {
-            None => Err(NetErrors::NoPathFound),
+            None => None,
             Some(followable_points) => {
                 let paths: Vec<Path<T>> = followable_points.into_iter()
                     .map(|point| self.all_paths_from_starting_to_destination_begining_with_path(point, &to, previous_path))
-                    .fold(Vec::new(), |paths: Vec<Path<T>>, path_search:Result<Vec<Path<T>>, NetErrors>|
+                    .fold(Vec::new(), |paths: Vec<Path<T>>, path_search:Option<Vec<Path<T>>>|
                         match path_search {
-                            Ok(paths_found) => paths.into_iter().chain(paths_found.into_iter()).collect(),
-                            Err(err) => match err {
-                                NetErrors::NoPathFound => paths,
-                                _ => panic!(err)
-                            }
+                            Some(paths_found) => paths.into_iter().chain(paths_found.into_iter()).collect(),
+                            None => paths
                         }
                     );
 
                 if paths.is_empty() {
-                    Err(NetErrors::NoPathFound)
+                    None
                 } else {
-                    Ok(paths)
+                    Some(paths)
                 }
             }
         }
     }
 
-    fn all_paths_from_starting_to_destination_begining_with_path(&self, starting_point: &T, destination_point: &T, with_path: &Path<T>) -> Result<Vec<Path<T>>, NetErrors> {
+    fn all_paths_from_starting_to_destination_begining_with_path(&self, starting_point: &T, destination_point: &T, with_path: &Path<T>) -> Option<Vec<Path<T>>> {
         let origin_node = self.find_node_or_panic(starting_point);
         let trying_path = with_path.with_point_at_the_end(starting_point);
         self.find_paths_not_crossing_previous_path(origin_node, &destination_point, &trying_path)
