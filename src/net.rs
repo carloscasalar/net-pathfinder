@@ -27,10 +27,17 @@ impl<'a, T: Point> Net<T> {
         match from.connected_points_not_in_path(previous_path) {
             None => Err(NetErrors::NoPathFound),
             Some(followable_points) => {
-                let mut paths: Vec<Path<T>> = Vec::new();
-                followable_points.into_iter().for_each(|point|
-                    self.push_all_paths_following(&mut paths, point, &to, previous_path)
-                );
+                let paths: Vec<Path<T>> = followable_points.into_iter()
+                    .map(|point| self.all_paths_from_starting_to_destination_begining_with_path(point, &to, previous_path))
+                    .fold(Vec::new(), |paths: Vec<Path<T>>, path_search:Result<Vec<Path<T>>, NetErrors>|
+                        match path_search {
+                            Ok(paths_found) => paths.into_iter().chain(paths_found.into_iter()).collect(),
+                            Err(err) => match err {
+                                NetErrors::NoPathFound => paths,
+                                _ => panic!(err)
+                            }
+                        }
+                    );
 
                 if paths.is_empty() {
                     Err(NetErrors::NoPathFound)
@@ -41,21 +48,10 @@ impl<'a, T: Point> Net<T> {
         }
     }
 
-    fn push_all_paths_following(&self, paths: &mut Vec<Path<T>>, starting_point: &T, destination_point: &&T, previous_path: &Path<T>) -> () {
+    fn all_paths_from_starting_to_destination_begining_with_path(&self, starting_point: &T, destination_point: &T, with_path: &Path<T>) -> Result<Vec<Path<T>>, NetErrors> {
         let origin_node = self.find_node_or_panic(starting_point);
-        let trying_path = previous_path.with_point_at_the_end(starting_point);
-        let path_search = self.find_paths_not_crossing_previous_path(origin_node, &destination_point, &trying_path);
-        match path_search {
-            Ok(paths_found) => paths_found.into_iter().for_each(|path_found| paths.push(path_found)),
-            Err(err) => Self::panic_if_error_is_not_path_not_found(err)
-        }
-    }
-
-    fn panic_if_error_is_not_path_not_found(err: NetErrors) -> () {
-        match err {
-            NetErrors::NoPathFound => (),
-            _ => panic!(err)
-        }
+        let trying_path = with_path.with_point_at_the_end(starting_point);
+        self.find_paths_not_crossing_previous_path(origin_node, &destination_point, &trying_path)
     }
 
     fn find_node_or_throws(&self, point: &T) -> Result<&Node<T>, NetErrors> {
