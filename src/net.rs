@@ -30,14 +30,7 @@ impl<'a, T: Point> Net<T> {
         match from.connected_points_not_in_path(previous_path) {
             None => None,
             Some(followable_points) => {
-                let paths: Vec<Path<T>> = followable_points.into_iter()
-                    .map(|point| self.all_paths_from_starting_to_destination_beginning_with_path(point, &to, previous_path))
-                    .fold(Vec::new(), |paths: Vec<Path<T>>, path_search: Option<Vec<Path<T>>>|
-                        match path_search {
-                            Some(paths_found) => paths.into_iter().chain(paths_found.into_iter()).collect(),
-                            None => paths
-                        },
-                    );
+                let paths = self.all_paths_to_destination_following_path_and_continuing_with_points(&to, previous_path, followable_points);
 
                 if paths.is_empty() {
                     None
@@ -48,9 +41,21 @@ impl<'a, T: Point> Net<T> {
         }
     }
 
-    fn all_paths_from_starting_to_destination_beginning_with_path(&self, starting_point: &T, destination_point: &T, with_path: &Path<T>) -> Option<Vec<Path<T>>> {
-        let origin_node = self.find_node_or_panic(starting_point);
-        let trying_path = with_path.with_point_at_the_end(starting_point);
+    fn all_paths_to_destination_following_path_and_continuing_with_points(&self, to: &&T, previous_path: &Path<T>, followable_points: Vec<&T>) -> Vec<Path<T>> {
+        followable_points
+            .into_iter()
+            .map(|point| self.all_paths_to_destination_following_path_and_continuing_with_point(&to, previous_path, point))
+            .fold(Vec::new(), |paths: Vec<Path<T>>, path_search: Option<Vec<Path<T>>>|
+                match path_search {
+                    Some(paths_found) => paths.into_iter().chain(paths_found.into_iter()).collect(),
+                    None => paths
+                },
+            )
+    }
+
+    fn all_paths_to_destination_following_path_and_continuing_with_point(&self, destination_point: &T, following_path: &Path<T>, next_point: &T) -> Option<Vec<Path<T>>> {
+        let origin_node = self.find_node_or_panic(next_point);
+        let trying_path = following_path.with_point_at_the_end(next_point);
         self.find_paths_not_crossing_previous_path(origin_node, &destination_point, &trying_path)
     }
 
