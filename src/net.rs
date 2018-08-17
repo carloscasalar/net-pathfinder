@@ -22,11 +22,6 @@ impl<'a, T: Point> Net<T> {
     }
 
     fn find_paths_not_crossing_previous_path(&self, from: &Node<T>, to: &T, previous_path: &Path<T>) -> Option<Vec<Path<T>>> {
-        if previous_path.ends_with(to) {
-            let current_path = previous_path.clone();
-            return Some(vec![current_path]);
-        }
-
         match from.connected_points_not_in_path(previous_path) {
             None => None,
             Some(followable_points) => {
@@ -56,7 +51,11 @@ impl<'a, T: Point> Net<T> {
     fn all_paths_to_destination_following_path_and_continuing_with_point(&self, destination_point: &T, following_path: &Path<T>, next_point: &T) -> Option<Vec<Path<T>>> {
         let origin_node = self.find_node_or_panic(next_point);
         let trying_path = following_path.with_point_at_the_end(next_point);
-        self.find_paths_not_crossing_previous_path(origin_node, &destination_point, &trying_path)
+        if trying_path.ends_with(destination_point) {
+            Some(vec![trying_path])
+        } else {
+            self.find_paths_not_crossing_previous_path(origin_node, &destination_point, &trying_path)
+        }
     }
 
     fn find_node_or_throws(&self, point: &T) -> Result<&Node<T>, NetErrors> {
