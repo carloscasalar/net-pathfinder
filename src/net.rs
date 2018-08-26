@@ -62,7 +62,7 @@ impl<'a, T: Point> Net<T> {
 
     fn find_node_or_throws(&self, point: &T) -> Result<&Node<T>, NetErrors> {
         let node_point = self.nodes.iter()
-            .find(|node| node.point.is(point));
+            .find(|node| node.point_is(point));
 
         match node_point {
             Some(ref node) => Ok(node),
@@ -102,8 +102,8 @@ mod test {
     use net::*;
     use node::Point;
     use node::Node;
-    use node::Connection;
     use path::Path;
+    use node::NodeBuilder;
 
     const A: char = 'A';
     const B: char = 'B';
@@ -310,21 +310,25 @@ mod test {
     }
 
     fn node(from: SimplePoint, to: SimplePoint) -> Node<SimplePoint> {
-        Node {
-            point: from.clone(),
-            connections: vec![Connection { to: to.clone() }],
-        }
+        NodeBuilder::new()
+            .point(&from)
+            .connected_point(&to)
+            .build()
+            .unwrap()
     }
 
     fn node_connected_to(point: SimplePoint, point_connected: Vec<SimplePoint>) -> Node<SimplePoint> {
-        let connections = point_connected.iter()
-            .map(|point| Connection { to: point.clone() })
-            .collect();
-        Node { point, connections }
+        NodeBuilder::new()
+            .point(&point)
+            .connected_points(&point_connected)
+            .build()
+            .unwrap()
     }
 
     fn non_connected_node(point: SimplePoint) -> Node<SimplePoint> {
-        let connections = Vec::new();
-        Node { point, connections }
+        NodeBuilder::new()
+            .point(&point)
+            .build()
+            .unwrap()
     }
 }
